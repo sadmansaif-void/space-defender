@@ -17,6 +17,7 @@ pygame.display.set_caption("Space Defender")
 #Event management
 
 LIFE_GONE = pygame.USEREVENT + 1 
+HIGH_SCORE = pygame.USEREVENT + 2
 
 #Set player attributes
 PLAYER_WIDTH , PLAYER_HEIGHT = 50, 50
@@ -110,6 +111,7 @@ class Ship:
         return self.ship_img.get_height()
 
 class Player(Ship):
+    score = 0
     def __init__(self, x, y, health =100):
         super().__init__(x , y,health)
         self.ship_img = PLAYER_IMAGE
@@ -128,7 +130,9 @@ class Player(Ship):
                 for obj in objs:
                     if laser.collision(obj):
                         objs.remove(obj)
-                        self.lasers.remove(laser)
+                        Player.score +=20
+                        if laser in self.lasers:
+                            self.lasers.remove(laser)
 
     def healthbar(self, window):
         pygame.draw.rect(window, "red",(self.x,self.y+ self.height() + 5, self.width(),8))
@@ -149,10 +153,20 @@ class Enemy(Ship):
 
     def move(self):
         self.y += ENEMY_VEL
-    
+        if random.randint(0, 2*FPS) == 1 and self.x + self.width() + 7*ENEMY_VEL <=WIDTH:
+            self.x += 7*ENEMY_VEL
+        if random.randint(0, 2*FPS) == 8 and self.x - 7*ENEMY_VEL>=0:
+            self.x -= 7*ENEMY_VEL    
+
+            
 
 
 def main():
+    high_score = 0
+    with open("SCORE.txt" , "r") as file:
+        line = file.readline()
+        if line.strip():
+            high_score = int(line.rstrip())        
     run = True
     levels = 0
     lives = 5
@@ -164,6 +178,8 @@ def main():
     player_ship = Player(PLAYER_SPAWN_X , PLAYER_SPAWN_Y)
     
     def re_draw():
+        score_text = FONT.render(f"SCORE : {Player.score}",1,"white")
+        high_score_text = FONT.render(f"HIGH SCORE : {high_score}",1,"white")
         level_text = FONT.render(f"LEVEL : {levels}", 1, "white")
         WIN.blit(BG,(0,0))
         for enemy in enemies:
@@ -172,7 +188,9 @@ def main():
         player_ship.healthbar(WIN)
         for life in range(lives):
             WIN.blit(PLAYER_LIFE_IMAGE, (life*18 , level_text.get_height()))
-        WIN.blit(level_text, (0,0))        
+        WIN.blit(level_text, (0,0))
+        WIN.blit(score_text, (WIDTH-score_text.get_width(),0))
+        WIN.blit(high_score_text, (WIDTH-high_score_text.get_width(),score_text.get_height() +2 ))        
         pygame.display.update()
 
 
@@ -207,9 +225,15 @@ def main():
         if lives <=0 or player_ship.health<=0:
             loosing_text = FONT.render(f"GAME OVER", 1, "red")
             WIN.blit(loosing_text, (WIDTH/2 - loosing_text.get_width()/2, HEIGHT/2 - loosing_text.get_height()/2))
+            if Player.score >= high_score:
+                high_score_label = FONT.render(f"NEW HIGH SCORE",1,"yellow")
+                WIN.blit(high_score_label, (WIDTH/2 - high_score_label.get_width()/2,HEIGHT/2 +loosing_text.get_height() - high_score_label.get_height()/2))
             pygame.display.update()
             pygame.time.delay(5000)
             run = False
+    if Player.score >= high_score:
+        with open("SCORE.txt", "w") as file:
+            line = file.write(str(Player.score))                      
     pygame.quit()        
 
 
@@ -237,7 +261,8 @@ def handle_enemy(enemies,player):
 
         if collide(enemy, player):
             player.health -=10
-            enemies.remove(enemy)    
+            enemies.remove(enemy)
+            Player.score +=10    
 
         elif enemy.y >= HEIGHT:
             pygame.event.post(pygame.event.Event(LIFE_GONE))
