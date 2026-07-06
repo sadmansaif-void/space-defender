@@ -68,6 +68,11 @@ Space-Defender/
 
 ---
 
+## Screenshots
+
+![Gameplay](screenshots/screenshot1.png)
+![Main Menu](screenshots/screenshot2.png)
+
 ## 📚 What I Learned
 
 While building this project, I practiced:

@@ -63,7 +63,7 @@ class Laser:
 
 
 class Ship:
-    COOLDOWN = 9
+    COOLDOWN = 7
     def __init__(self, x, y, health = 100):
         self.x = x
         self.y =y
@@ -94,7 +94,7 @@ class Ship:
 
     def move_laser(self, vel,obj):
         self.cooldown()
-        for laser in self.lasers:
+        for laser in self.lasers[:]:
             laser.move(vel)
             if laser.offscreen():
                 self.lasers.remove(laser)
@@ -127,7 +127,7 @@ class Player(Ship):
             if laser.offscreen():
                 self.lasers.remove(laser)
             else:
-                for obj in objs:
+                for obj in objs[:]:
                     if laser.collision(obj):
                         objs.remove(obj)
                         Player.score +=20
@@ -168,6 +168,7 @@ def main():
         if line.strip():
             high_score = int(line.rstrip())        
     run = True
+    did_quit = False
     levels = 0
     lives = 5
     enemies = []
@@ -176,6 +177,7 @@ def main():
     clock = pygame.time.Clock()
 
     player_ship = Player(PLAYER_SPAWN_X , PLAYER_SPAWN_Y)
+
     
     def re_draw():
         score_text = FONT.render(f"SCORE : {Player.score}",1,"white")
@@ -206,8 +208,10 @@ def main():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                did_quit = True
                 run = False
                 break
+
 
             if event.type == LIFE_GONE:
                 lives -=1            
@@ -230,15 +234,18 @@ def main():
                 WIN.blit(high_score_label, (WIDTH/2 - high_score_label.get_width()/2,HEIGHT/2 +loosing_text.get_height() - high_score_label.get_height()/2))
             pygame.display.update()
             pygame.time.delay(5000)
+            if Player.score >= high_score:
+                with open("SCORE.txt", "w") as file:
+                    line = file.write(str(Player.score))
+            Player.score = 0    
             run = False
-    if Player.score >= high_score:
-        with open("SCORE.txt", "w") as file:
-            line = file.write(str(Player.score))                      
-    pygame.quit()        
-
-
-
-
+            break    
+    if not did_quit:
+        main_menu()
+    else:
+        pygame.quit()    
+                          
+        
 def player_movement(keys, player_ship):
 
     if keys[pygame.K_LEFT] and player_ship.x - PLAYER_VEL >= 0:
@@ -275,8 +282,32 @@ def collide(obj1, obj2):
     offset_y = obj2.y -obj1.y
     return obj1.mask.overlap(obj2.mask , (offset_x,offset_y)) != None 
 
-    
+def main_menu():
+    main_run = True
+    mainmenu_text = FONT.render("DON'T LET THE ENEMIES ESCAPE",1,"white")
+    start_text = FONT.render("PRESS ENTER TO START",1,"blue")
+    please_wait = FONT.render("PLEASE WAIT" , 1 , "white")
+    while main_run:
+        WIN.blit(BG, (0,0))
+        WIN.blit(mainmenu_text, (WIDTH/2 - mainmenu_text.get_width()/2, HEIGHT/2 - mainmenu_text.get_height()/2))
+        WIN.blit(start_text, (WIDTH/2 - start_text.get_width()/2, HEIGHT/2 + 8 + mainmenu_text.get_height() - start_text.get_height()/2 ))
+        pygame.display.update()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                main_run = False
+                pygame.quit()
+                break
+            if event.type ==pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:    
+                    main_run = False
+                    WIN.blit(BG, (0,0))            
+                    WIN.blit(please_wait , (WIDTH/2 - please_wait.get_width()/2, HEIGHT/2 - please_wait.get_height()/2))
+                    pygame.display.update()
+                    pygame.time.delay(3000)
+                    main()
+                    break
+                
 
-
+                    
 if __name__ == "__main__":
-    main()
+    main_menu()
